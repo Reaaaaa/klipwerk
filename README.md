@@ -4,7 +4,7 @@
 
 **Fast, keyboard-driven video trimming and cropping — powered by ffmpeg.**
 
-[![CI](https://github.com/Reaaaaa/klipwerk/actions/workflows/ci.yml/badge.svg)](https://github.com/Reaaaaa/klipwerk/actions/workflows/ci.yml)
+[![CI](https://github.com/Reaaaaa/klipwerk/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Reaaaaa/klipwerk/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![PyQt6](https://img.shields.io/badge/UI-PyQt6-41cd52?logo=qt&logoColor=white)](https://pypi.org/project/PyQt6/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
