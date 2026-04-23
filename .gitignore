@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# venv / tooling
+.venv/
+venv/
+env/
+ENV/
+.tox/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Klipwerk specifics
+work/
+_klipwerk_tmp_*/
+*.log
+
+# Bundled ffmpeg — do NOT commit binaries to the repo
+ffmpeg
+ffprobe
+ffmpeg.exe
+ffprobe.exe
+bin/
+
+# Build outputs
+*.exe
+*.AppImage
+*.dmg
