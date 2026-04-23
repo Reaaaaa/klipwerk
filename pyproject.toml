@@ -29,8 +29,8 @@ classifiers = [
     "Topic :: Multimedia :: Video :: Non-Linear Editor",
 ]
 dependencies = [
-    "PyQt6>=6.6.0",
-    "PyQt6-Qt6>=6.6.0",
+    "PyQt6>=6.6.0,<6.11",
+    "PyQt6-Qt6>=6.6.0,<6.11",
     "PyQt6-sip>=13.6.0",
     "opencv-python>=4.9.0",
     "Pillow>=10.0.0",
