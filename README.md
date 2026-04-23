@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <div align="center">
 
 # ✂ Klipwerk
@@ -166,3 +167,7 @@ klipwerk/
 ## License
 
 MIT — see [LICENSE](LICENSE).
+=======
+# klipwerk
+Fast, keyboard-driven video editor for trimming, cropping and converting, built around ffmpeg. PyQt6 · OpenCV · Python 3.10+
+>>>>>>> 9d46f262c73669095c9c46842543b78f0bdac474
