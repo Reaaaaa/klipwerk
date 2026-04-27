@@ -26,7 +26,7 @@ from PyQt6.QtWidgets import (
 )
 
 from .core.formats import FORMATS
-from .ui.theme import ACC3, BORDER, BORDER2, MUTED, MUTED2, S1, S2, TEXT
+from .ui.theme import ACC3, BORDER, BORDER2, MUTED, MUTED2, S1, S2, S3, TEXT
 from .widgets.guarded import (
     GuardedComboBox,
     GuardedDoubleSpinBox,
@@ -45,6 +45,7 @@ class SidebarRefs:
     # Video info panel
     info_header: QWidget
     info_label: QLabel
+    info_subtitle_lbl: QLabel
     info_toggle_lbl: QLabel
     info_panel: QWidget
     info_rows: dict[str, QLabel]
@@ -118,16 +119,33 @@ def build_sidebar(
 
     # ── Video info section (collapsible) ────────────────────────────
     info_header = QWidget()
-    info_header.setFixedHeight(30)
-    info_header.setStyleSheet(f"background:{S2}; border-bottom:1px solid {BORDER};")
+    info_header.setFixedHeight(48)
+    info_header.setStyleSheet(
+        f"QWidget {{ background:{S2}; }}"
+        f"QWidget:hover {{ background:{S3}; }}"
+    )
     info_header.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
     ih_lay = QHBoxLayout(info_header)
-    ih_lay.setContentsMargins(14, 0, 14, 0)
-    info_label = label("No video loaded", color=MUTED2, size=11)
-    info_toggle_lbl = label("▸", color=MUTED, size=10)
-    ih_lay.addWidget(info_label)
-    ih_lay.addStretch()
-    ih_lay.addWidget(info_toggle_lbl)
+    ih_lay.setContentsMargins(14, 6, 14, 6)
+
+    ih_text_lay = QVBoxLayout()
+    ih_text_lay.setSpacing(2)
+    ih_text_lay.setContentsMargins(0, 0, 0, 0)
+
+    ih_title_row = QHBoxLayout()
+    ih_title_row.setSpacing(6)
+    ih_title_row.setContentsMargins(0, 0, 0, 0)
+    info_label = label("Video-Infos", color=TEXT, size=12)
+    info_toggle_lbl = label("— click to expand", color=MUTED2, size=10)
+    ih_title_row.addWidget(info_label)
+    ih_title_row.addWidget(info_toggle_lbl)
+    ih_title_row.addStretch()
+
+    info_subtitle_lbl = label("No video loaded", color=MUTED2, size=10)
+    ih_text_lay.addLayout(ih_title_row)
+    ih_text_lay.addWidget(info_subtitle_lbl)
+
+    ih_lay.addLayout(ih_text_lay)
 
     info_panel = QWidget()
     info_panel.setStyleSheet(f"background:{S2};")
@@ -347,6 +365,7 @@ def build_sidebar(
         sections_splitter=sections_splitter,
         info_header=info_header,
         info_label=info_label,
+        info_subtitle_lbl=info_subtitle_lbl,
         info_toggle_lbl=info_toggle_lbl,
         info_panel=info_panel,
         info_rows=info_rows,

@@ -34,10 +34,10 @@ QLabel {{ background: transparent; }}
 /* Buttons — explicit color on all states to prevent OS overrides */
 QPushButton {{
     background: {S3};
-    border: 1px solid {BORDER2};
+    border: 2px solid {BORDER2};
     color: {TEXT};
     padding: 6px 14px;
-    border-radius: 5px;
+    border-radius: 4px;
     font-size: 12px;
     min-height: 26px;
     outline: none;

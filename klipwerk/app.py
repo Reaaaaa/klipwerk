@@ -85,6 +85,7 @@ from .widgets.clip_item import ClipItem, TimelineClip
 from .widgets.helpers import btn, label
 from .widgets.preview import PreviewWidget
 from .widgets.scrubber import ScrubberWidget
+from .widgets.seq_preview import SequencePreviewWindow
 from .workers.ffmpeg_worker import FFmpegWorker, SequenceFFmpegWorker
 from .workers.waveform import WaveformWorker
 
@@ -115,7 +116,10 @@ class Klipwerk(QMainWindow):
         self.setStyleSheet(STYLE)
         self.setAcceptDrops(True)
 
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowMinimizeButtonHint
+        )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         self._drag_pos: QPoint | None = None
         self._resizing = False
@@ -149,8 +153,6 @@ class Klipwerk(QMainWindow):
         self._waveform_worker: WaveformWorker | None = None
 
         self._tooltips_enabled = True
-        self._seq_idx = -1
-        self._seq_active = False
         self._use_k_mode = True   # K=Klip by default; C=Clip toggle
         self._hover_show_frames = False
 
@@ -317,66 +319,66 @@ class Klipwerk(QMainWindow):
 
     def _build_toolbar(self) -> QWidget:
         w = QWidget()
-        w.setFixedHeight(52)
+        w.setFixedHeight(58)
         w.setStyleSheet(f"background:{S1}; border-bottom:1px solid {BORDER2};")
         lay = QHBoxLayout(w)
-        lay.setContentsMargins(12, 10, 12, 10)
+        lay.setContentsMargins(12, 12, 12, 12)
         lay.setSpacing(6)
 
         self.btn_crop = btn("✂  Crop", compact=True); self.btn_crop.setCheckable(True)
-        self.btn_crop.setFixedHeight(30)
+        self.btn_crop.setFixedHeight(32)
         self.btn_crop.toggled.connect(lambda c: self.preview.set_crop_mode(c))
         self.btn_crop.setDisabled(True)
 
         self.btn_crop_clr = btn("✕  Clear Crop", danger=True, compact=True)
-        self.btn_crop_clr.setFixedHeight(30)
+        self.btn_crop_clr.setFixedHeight(32)
         self.btn_crop_clr.clicked.connect(self._clear_crop)
         self.btn_crop_clr.setDisabled(True)
 
         sep = QFrame(); sep.setFrameShape(QFrame.Shape.VLine)
         sep.setStyleSheet(f"color:{BORDER2};"); sep.setFixedWidth(1)
 
-        self.btn_in  = btn("[  In",  compact=True); self.btn_in.setFixedHeight(30)
-        self.btn_out = btn("Out  ]", compact=True); self.btn_out.setFixedHeight(30)
+        self.btn_in  = btn("[  In",  compact=True); self.btn_in.setFixedHeight(32)
+        self.btn_out = btn("Out  ]", compact=True); self.btn_out.setFixedHeight(32)
         self.btn_in.clicked.connect(lambda: self._set_mark("in"))
         self.btn_out.clicked.connect(lambda: self._set_mark("out"))
         self.btn_in.setDisabled(True)
         self.btn_out.setDisabled(True)
 
         self.btn_add_clip = btn("+  Add Klip", compact=True)
-        self.btn_add_clip.setFixedHeight(30)
+        self.btn_add_clip.setFixedHeight(32)
         self.btn_add_clip.clicked.connect(self._add_clip)
         self.btn_add_clip.setDisabled(True)
 
         sep2 = QFrame(); sep2.setFrameShape(QFrame.Shape.VLine)
         sep2.setStyleSheet(f"color:{BORDER2};"); sep2.setFixedWidth(1)
 
-        btn_open = btn("⊕  Open File", compact=True); btn_open.setFixedHeight(30)
+        btn_open = btn("⊕  Open File", compact=True); btn_open.setFixedHeight(32)
         btn_open.clicked.connect(self._open_file_dialog)
 
         self.btn_close_vid = btn("⏏  Close Video", danger=True, compact=True)
-        self.btn_close_vid.setFixedHeight(30)
+        self.btn_close_vid.setFixedHeight(32)
         self.btn_close_vid.clicked.connect(self._close_video)
         self.btn_close_vid.setDisabled(True)
 
         self.btn_preview_seq = btn("▶  Preview Sequence", compact=True)
-        self.btn_preview_seq.setFixedHeight(30)
+        self.btn_preview_seq.setFixedHeight(32)
         self.btn_preview_seq.clicked.connect(self._preview_sequence)
         self.btn_preview_seq.setDisabled(True)
 
-        self.btn_tips = btn("? Tips", compact=True); self.btn_tips.setFixedHeight(30)
+        self.btn_tips = btn("? Tips", compact=True); self.btn_tips.setFixedHeight(32)
         self.btn_tips.setCheckable(True); self.btn_tips.setChecked(True)
         self.btn_tips.toggled.connect(self._toggle_tooltips)
         self.btn_tips.setStyleSheet(
-            f"QPushButton {{ background:{S3}; border:1px solid {BORDER2};"
-            f" color:{MUTED2}; font-size:11px; border-radius:5px;"
+            f"QPushButton {{ background:{S3}; border:2px solid {BORDER2};"
+            f" color:{MUTED2}; font-size:11px; border-radius:4px;"
             f" padding:4px 10px; outline:none; }}"
             f"QPushButton:checked {{ background:{S2}; border-color:{ACC3}; color:{ACC3}; }}"
             f"QPushButton:hover {{ border-color:{ACC3}; color:{ACC3}; }}"
         )
 
         self.btn_klip_toggle = QPushButton("C/K")
-        self.btn_klip_toggle.setFixedHeight(30)
+        self.btn_klip_toggle.setFixedHeight(32)
         self.btn_klip_toggle.setCheckable(True)
         self.btn_klip_toggle.blockSignals(True)
         self.btn_klip_toggle.setChecked(True)
@@ -384,9 +386,9 @@ class Klipwerk(QMainWindow):
         self.btn_klip_toggle.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.btn_klip_toggle.setToolTip("Toggle between 'Klip' (K) and 'Clip' (C)")
         self.btn_klip_toggle.setStyleSheet(
-            f"QPushButton {{ background:{S3}; border:1px solid {BORDER2};"
+            f"QPushButton {{ background:{S3}; border:2px solid {BORDER2};"
             f" color:{MUTED2}; font-size:11px; font-weight:bold;"
-            f" border-radius:5px; padding:4px 10px; outline:none; }}"
+            f" border-radius:4px; padding:4px 10px; outline:none; }}"
             f"QPushButton:checked {{ background:{S2}; border-color:{ACC}; color:{ACC}; }}"
             f"QPushButton:hover {{ border-color:{ACC}; color:{ACC}; }}"
         )
@@ -424,17 +426,17 @@ class Klipwerk(QMainWindow):
         self.btn_play = QPushButton("▶"); self.btn_play.setFixedSize(52, 36)
 
         transport_style = (
-            f"QPushButton {{ background:{S3}; border:1px solid {BORDER2};"
+            f"QPushButton {{ background:{S3}; border:2px solid {BORDER2};"
             f" color:{TEXT}; font-size:15px; font-weight:bold;"
-            f" border-radius:5px; outline:none; }}"
+            f" border-radius:4px; outline:none; }}"
             f"QPushButton:hover {{ border-color:{ACC}; color:{ACC}; background:{S3}; }}"
             f"QPushButton:pressed {{ background:{S2}; color:{TEXT}; }}"
             f"QPushButton:disabled {{ color:{MUTED}; border-color:{BORDER}; background:{S2}; }}"
         )
         play_style = (
-            f"QPushButton {{ background:{ACC}; border:1px solid {ACC};"
+            f"QPushButton {{ background:{ACC}; border:2px solid {ACC};"
             f" color:#000; font-size:15px; font-weight:bold;"
-            f" border-radius:5px; outline:none; }}"
+            f" border-radius:4px; outline:none; }}"
             f"QPushButton:hover {{ background:#d4ff45; border-color:#d4ff45; color:#000; }}"
             f"QPushButton:pressed {{ background:#b8e030; color:#000; }}"
             f"QPushButton:disabled {{ background:{S3}; color:{MUTED}; border-color:{BORDER}; }}"
@@ -689,7 +691,7 @@ class Klipwerk(QMainWindow):
         k = self._k
         self.btn_add_clip.setText(f"+  {k('Add Klip')}")
         self.sidebar.btn_add_sidebar.setText(f"+  {k('Add as Klip')}")
-        self.btn_preview_seq.setText(f"▶  Preview {k('Klips')}")
+        self.btn_preview_seq.setText("▶  Preview Sequence")
         self.sidebar.btn_ex_clip.setText(f"  Export Active {k('Klip')}")
         self.sidebar.btn_ex_seq.setText(f"  Export {k('Klips')} Sequence")
         self.sidebar.klips_section_label.setText(k("Klips"))
@@ -711,7 +713,7 @@ class Klipwerk(QMainWindow):
     def _toggle_info_panel(self) -> None:
         visible = not self.sidebar.info_panel.isVisible()
         self.sidebar.info_panel.setVisible(visible)
-        self.sidebar.info_toggle_lbl.setText("▾" if visible else "▸")
+        self.sidebar.info_toggle_lbl.setText("— click to collapse" if visible else "— click to expand")
 
     # =============================================================
     # Section 2 — Video load, playback, seeking
@@ -757,8 +759,8 @@ class Klipwerk(QMainWindow):
         name = Path(path).name
         self.fname_label.setText(name)
         self.setWindowTitle(f"Klipwerk — {name}")
-        self.sidebar.info_label.setText(
-            f"{name}   {self.vid_w}×{self.vid_h}  ·  {self.duration:.1f}s  ·  {self.fps:.2f}fps"
+        self.sidebar.info_subtitle_lbl.setText(
+            f"{self.vid_w}×{self.vid_h}  ·  {self.duration:.1f}s  ·  {self.fps:.2f}fps"
         )
         self._set_status("ready", ACC)
 
@@ -880,12 +882,12 @@ class Klipwerk(QMainWindow):
 
         self.fname_label.setText("")
         self.setWindowTitle("Klipwerk")
-        self.sidebar.info_label.setText("No video loaded")
+        self.sidebar.info_subtitle_lbl.setText("No video loaded")
         for v in self.sidebar.info_rows.values():
             v.setText("—")
         if self.sidebar.info_panel.isVisible():
             self.sidebar.info_panel.hide()
-            self.sidebar.info_toggle_lbl.setText("▸")
+            self.sidebar.info_toggle_lbl.setText("— click to expand")
         self._set_status("ready", ACC)
         self._clear_crop()
 
@@ -918,11 +920,6 @@ class Klipwerk(QMainWindow):
         self._show_frame(frame)
         self._update_scrubber()
 
-        # Sequence preview: jump to next clip when current out-point reached
-        if self._seq_active and self._seq_idx >= 0 and self._seq_idx < len(self.clips):
-            c = self.clips[self._seq_idx]
-            if self.current_t >= c.end:
-                self._jump_to_seq_clip(self._seq_idx + 1)
 
     def _toggle_play(self) -> None:
         if self.playing:
@@ -937,13 +934,10 @@ class Klipwerk(QMainWindow):
         self.btn_play.setText("⏸")
         self._timer.start()
 
-    def _stop(self, *, cancel_seq: bool = True) -> None:
+    def _stop(self) -> None:
         self.playing = False
         self._timer.stop()
         self.btn_play.setText("▶")
-        if cancel_seq:
-            self._seq_active = False
-            self._seq_idx = -1
 
     def _step(self, direction: int) -> None:
         if not self.cap:
@@ -1219,30 +1213,10 @@ class Klipwerk(QMainWindow):
     def _preview_sequence(self) -> None:
         if not self.clips or not self.video_path:
             return
-        self._seq_active = True
-        self._seq_idx = 0
-        self._stop(cancel_seq=False)
-        self._jump_to_seq_clip(0)
-
-    def _jump_to_seq_clip(self, idx: int) -> None:
-        if idx >= len(self.clips):
-            self._seq_active = False
-            self._seq_idx = -1
-            self._stop(cancel_seq=False)
-            self._set_status("ready", ACC)
-            return
-        self._seq_idx = idx
-        self.active_clip = idx
-        self._render_clips()
-        self._render_timeline()
-        c = self.clips[idx]
-        self._stop(cancel_seq=False)
-        self._seek_to(c.start)
-        self._play()
-        self._set_status(
-            f"preview: {c.name}  ({idx + 1}/{len(self.clips)} {self._k('Klips')})",
-            ACC3,
+        win = SequencePreviewWindow(
+            self.video_path, self.clips, self.fps, parent=self,
         )
+        win.show()
 
     def _move_clip(self, from_idx: int, to_idx: int) -> None:
         if self.history.move(from_idx, to_idx):

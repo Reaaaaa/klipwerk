@@ -8,7 +8,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![PyQt6](https://img.shields.io/badge/UI-PyQt6-41cd52?logo=qt&logoColor=white)](https://pypi.org/project/PyQt6/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-107%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-98%20passing-brightgreen)](tests/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](https://github.com/Reaaaaa/klipwerk)
 
 <br/>
@@ -37,15 +37,18 @@ Under the hood it's a thin, opinionated wrapper around `ffmpeg`. No proprietary 
 | | |
 |---|---|
 | **Live preview** | OpenCV-powered frame display with drag-to-crop, rule-of-thirds overlay, and aspect-ratio presets |
-| **Waveform scrubber** | Timeline with waveform visualization (numpy-vectorized, 10–50× faster than naive), hover thumbnails, and I/O markers |
-| **Clip list** | Drag-to-reorder, rename, undo/redo (command-pattern, O(1) per edit) |
+| **Waveform scrubber** | Timeline with waveform visualization (numpy-vectorized peak extraction), hover thumbnails, and I/O markers |
+| **Clip list** | Drag-to-reorder, rename, undo/redo (command-pattern, no full list copies per edit) |
 | **Sequence export** | Concatenate any number of clips into one video in a single click |
-| **Stream-copy fast path** | No crop + all positive durations → skips re-encoding entirely. Minute-long H.265 jobs become second-long stream copies |
+| **Stream-copy fast path** | No crop + all positive durations → skips re-encoding entirely, making exports significantly faster |
 | **7 output formats** | H.264, H.265, AV1, VP9 across MP4, MKV, WebM |
 | **Rich media info** | ffprobe panel: codec, container, bitrate, color space, pixel format, duration |
 | **Settings persistence** | Window geometry, export defaults, format/CRF/preset survive restarts via `QSettings` |
 | **Frameless chrome** | Custom title bar with proper resize handles on all edges |
 | **Zero config** | Drop `ffmpeg`/`ffprobe` next to the script or put them on `$PATH` — done |
+
+> [!NOTE]
+> Klipwerk is a **cut-and-crop tool**, not a full media player. The waveform in the scrubber is a visual orientation aid — it helps you spot audio peaks so you can land on the right frame faster. Audio playback in the preview is intentionally out of scope; for a quick listen while you work, run your system's media player alongside Klipwerk.
 
 ---
 
@@ -137,6 +140,7 @@ klipwerk/
 ├── widgets/
 │   ├── preview.py        # live video preview + crop drag
 │   ├── scrubber.py       # timeline scrubber with waveform
+│   ├── seq_preview.py    # standalone sequence preview window
 │   ├── clip_item.py      # sidebar list row + timeline tile
 │   ├── guarded.py        # scroll-safe QSpinBox / QComboBox
 │   └── helpers.py        # styled label / button / separator
@@ -157,7 +161,7 @@ klipwerk/
 
 - **Pure-function export planner** (`SequencePlan`) — the fast-copy decision and argv construction are fully testable without Qt, covered by 38 dedicated unit tests.
 - **Command-pattern undo/redo** — edits push/pop `Command` objects; no deep-copying the clip list on every action.
-- **Vectorized waveform** — `numpy.reshape` + `max(axis=1)` is 10–50× faster than a Python loop over samples.
+- **Vectorized waveform** — `numpy.reshape` + `max(axis=1)` avoids a Python loop over samples, keeping peak extraction fast even for longer files.
 - **Platform-safe subprocess flags** — `CREATE_NO_WINDOW` is gated behind `getattr` so the same code path works on Linux and macOS without `AttributeError`.
 - **Zombie-process cleanup** — `FFmpegWorker` waits 2 s after `terminate()`, escalates to `kill()` on timeout, then waits again. Especially relevant for sequence exports that spawn many back-to-back ffmpeg processes.
 
@@ -166,6 +170,3 @@ klipwerk/
 ## License
 
 MIT — see [LICENSE](LICENSE).
-=======
-# klipwerk
-Fast, keyboard-driven video editor for trimming, cropping and converting, built around ffmpeg. PyQt6 · OpenCV · Python 3.10+
