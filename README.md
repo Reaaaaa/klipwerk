@@ -24,11 +24,13 @@
 
 ---
 
-## Why Klipwerk?
+## Why KLIPWERK?
 
-Most video editors are built around timelines with hundreds of tracks. Klipwerk does one thing: it lets you cut and crop clips out of a video as fast as possible, then export them — individually or stitched into a sequence. Every action has a keyboard shortcut. The UI never gets in your way.
+Most video editors are built around complex timelines with dozens of tracks. KLIPWERK focuses on one thing: cutting and cropping clips as fast as possible.
+Export clips individually or stitch them into a sequence. Every action is keyboard-first, and the interface stays out of your way.
+Import a video, crop exactly what you need with pixel-precise controls, and export it as a video or a GIF in seconds, supporting multiple formats and modern codecs like H.265, AV1, and WebM.
 
-Under the hood it's a thin, opinionated wrapper around `ffmpeg`. No proprietary formats, no vendor lock-in, no cloud anything.
+Under the hood, KLIPWERK is a thin wrapper around `ffmpeg`. It works with standard formats and keeps your workflow simple and transparent.
 
 ---
 
@@ -49,7 +51,7 @@ Under the hood it's a thin, opinionated wrapper around `ffmpeg`. No proprietary 
 | **Zero config** | Drop `ffmpeg`/`ffprobe` next to the script or put them on `$PATH` — done |
 
 > [!NOTE]
-> Klipwerk is a **cut-and-crop tool**, not a full media player. The waveform in the scrubber is a visual orientation aid — it helps you spot audio peaks so you can land on the right frame faster. Audio playback in the preview is intentionally out of scope; for a quick listen while you work, run your system's media player alongside Klipwerk.
+> KLIPWERK is a **cut-and-crop tool**, not a full media player. The waveform in the scrubber is a visual orientation aid — it helps you spot audio peaks so you can land on the right frame faster. Audio playback in the preview is intentionally out of scope; for a quick listen while you work, run your system's media player alongside KLIPWERK.
 
 ---
 
@@ -66,7 +68,7 @@ klipwerk
 
 ### ffmpeg
 
-Klipwerk calls your existing `ffmpeg` installation — nothing is bundled. It searches in this order: `$PATH` → package directory → `./bin/` → `~/Documents/ffmpeg/` → `C:\ffmpeg\bin\` → `C:\Program Files\ffmpeg\bin\`.
+KLIPWERK calls your existing `ffmpeg` installation — nothing is bundled. It searches in this order: `$PATH` → package directory → `./bin/` → `~/Documents/ffmpeg/` → `C:\ffmpeg\bin\` → `C:\Program Files\ffmpeg\bin\`.
 
 | Platform | How to get ffmpeg |
 |---|---|
