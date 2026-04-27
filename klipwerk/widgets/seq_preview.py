@@ -22,12 +22,12 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from .helpers import btn, label
 from ..core.models import Clip
 from ..ui.icons import SVG_CLOSE, SVG_MAXIMIZE, SVG_MINIMIZE, SVG_RESTORE, make_icon
 from ..ui.theme import (
     ACC, ACC2, BG, BORDER2, MUTED, MUTED2, S1, S2, S3, TEXT,
 )
-from .helpers import btn, label
 
 
 class SequencePreviewWindow(QWidget):
