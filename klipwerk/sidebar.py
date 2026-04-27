@@ -85,7 +85,9 @@ class SidebarRefs:
     lbl_preset: QLabel
     codec_note: QLabel
     export_prefix: QLineEdit
-    export_suffix: QLineEdit
+    export_suffix_crop: QLineEdit
+    export_suffix_clip: QLineEdit
+    export_suffix_seq: QLineEdit
     fname_preview: QLabel
     btn_ex_seq: QPushButton
     btn_ex_clip: QPushButton
@@ -98,7 +100,9 @@ def build_sidebar(
     on_mark_out_changed: Callable[[float], None],
     on_fmt_changed: Callable[[int], None],
     on_prefix_changed: Callable[[str], None],
-    on_suffix_changed: Callable[[str], None],
+    on_suffix_crop_changed: Callable[[str], None],
+    on_suffix_clip_changed: Callable[[str], None],
+    on_suffix_seq_changed: Callable[[str], None],
     set_crop_preset: Callable[[int, int], None],
     on_add_klip: Callable[[], None],
     on_export_crop: Callable[[], None],
@@ -253,8 +257,12 @@ def build_sidebar(
     export_lay.addWidget(hsep())
     export_lay.addWidget(section_label("Output Filename"))
 
-    (naming_w, export_prefix, export_suffix) = _build_naming_grid(
-        on_prefix_changed, on_suffix_changed,
+    (naming_w, export_prefix,
+     export_suffix_crop, export_suffix_clip, export_suffix_seq) = _build_naming_grid(
+        on_prefix_changed,
+        on_suffix_crop_changed,
+        on_suffix_clip_changed,
+        on_suffix_seq_changed,
     )
     export_lay.addWidget(naming_w)
 
@@ -361,7 +369,9 @@ def build_sidebar(
         lbl_fmt=lbl_fmt, lbl_crf=lbl_crf, lbl_preset=lbl_preset,
         codec_note=codec_note,
         export_prefix=export_prefix,
-        export_suffix=export_suffix,
+        export_suffix_crop=export_suffix_crop,
+        export_suffix_clip=export_suffix_clip,
+        export_suffix_seq=export_suffix_seq,
         fname_preview=fname_preview,
         btn_ex_seq=btn_ex_seq,
         btn_ex_clip=btn_ex_clip,
@@ -464,7 +474,7 @@ def _build_export_grid(on_fmt_changed):
     return wrap, export_fmt, export_crf, export_preset, lf, lc, lp
 
 
-def _build_naming_grid(on_prefix, on_suffix):
+def _build_naming_grid(on_prefix, on_suffix_crop, on_suffix_clip, on_suffix_seq):
     wrap = QWidget()
     outer = QHBoxLayout(wrap)
     outer.setContentsMargins(10, 0, 0, 0)
@@ -478,17 +488,29 @@ def _build_naming_grid(on_prefix, on_suffix):
     prefix.setPlaceholderText("e.g.  project_")
     prefix.textChanged.connect(on_prefix)
 
-    suffix = QLineEdit()
-    suffix.setPlaceholderText("e.g.  _v2")
-    suffix.textChanged.connect(on_suffix)
+    suffix_crop = QLineEdit()
+    suffix_crop.setText("_crop")
+    suffix_crop.textChanged.connect(on_suffix_crop)
 
-    lpr = label("Prefix", color=MUTED2, size=12); lpr.setFixedWidth(48)
-    lsu = label("Suffix", color=MUTED2, size=12); lsu.setFixedWidth(48)
+    suffix_clip = QLineEdit()
+    suffix_clip.setText("_clip")
+    suffix_clip.textChanged.connect(on_suffix_clip)
 
-    grid.addWidget(lpr, 0, 0); grid.addWidget(prefix, 0, 1)
-    grid.addWidget(lsu, 1, 0); grid.addWidget(suffix, 1, 1)
+    suffix_seq = QLineEdit()
+    suffix_seq.setText("_seq")
+    suffix_seq.textChanged.connect(on_suffix_seq)
+
+    lpr   = label("Prefix",    color=MUTED2, size=12); lpr.setFixedWidth(52)
+    lcrop = label("→ Crop",    color=MUTED2, size=12); lcrop.setFixedWidth(52)
+    lclip = label("→ Clip",    color=MUTED2, size=12); lclip.setFixedWidth(52)
+    lseq  = label("→ Seq",     color=MUTED2, size=12); lseq.setFixedWidth(52)
+
+    grid.addWidget(lpr,   0, 0); grid.addWidget(prefix,     0, 1)
+    grid.addWidget(lcrop, 1, 0); grid.addWidget(suffix_crop, 1, 1)
+    grid.addWidget(lclip, 2, 0); grid.addWidget(suffix_clip, 2, 1)
+    grid.addWidget(lseq,  3, 0); grid.addWidget(suffix_seq,  3, 1)
     outer.addLayout(grid)
-    return wrap, prefix, suffix
+    return wrap, prefix, suffix_crop, suffix_clip, suffix_seq
 
 
 def _make_scroll(inner: QWidget) -> QScrollArea:

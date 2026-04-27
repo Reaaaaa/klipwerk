@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Per-mode export suffix fields** (`sidebar.py`, `settings.py`): the
+  single generic suffix input is replaced by three independent fields —
+  `→ Crop` (default `_crop`), `→ Clip` (default `_clip`), `→ Seq`
+  (default `_seq`). Each can be freely edited; the chosen value is used
+  verbatim in the filename preview and in the save-file dialog. All
+  three values persist across sessions via `QSettings`.
+- 2 new unit tests (`test_settings.py`) covering roundtrip and defaults
+  for the three new suffix keys.
+
+### Fixed
+- **Clips not cleared on Close Video**: `_close_video()` now resets the
+  clip list, undo history, and active-clip index, then re-renders the
+  sidebar and timeline so all clips disappear immediately when a video
+  is closed.
+
+### Added
 - **UI smoke-test suite** (`tests/test_app_smoke.py`): 12 tests using
   pytest-qt's `qtbot` fixture that construct the main window, exercise
   common paths (shortcuts, format-combo changes, export guards, K/C

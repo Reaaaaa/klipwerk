@@ -96,6 +96,22 @@ class TestDefaults:
         fresh = Settings(tmp_settings.path)
         assert fresh.prefix(default="should-not-be-used") == ""
 
+    def test_per_mode_suffixes_roundtrip(self, tmp_settings: Settings) -> None:
+        tmp_settings.set_suffix_crop("_cropped")
+        tmp_settings.set_suffix_clip("_myclip")
+        tmp_settings.set_suffix_seq("_sequence_final")
+        tmp_settings.sync()
+
+        fresh = Settings(tmp_settings.path)
+        assert fresh.suffix_crop() == "_cropped"
+        assert fresh.suffix_clip() == "_myclip"
+        assert fresh.suffix_seq() == "_sequence_final"
+
+    def test_per_mode_suffixes_defaults(self, tmp_settings: Settings) -> None:
+        assert tmp_settings.suffix_crop() == "_crop"
+        assert tmp_settings.suffix_clip() == "_clip"
+        assert tmp_settings.suffix_seq() == "_seq"
+
 
 class TestRobustness:
     def test_corrupted_value_falls_back_to_default(

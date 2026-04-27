@@ -292,7 +292,9 @@ class Klipwerk(QMainWindow):
             on_mark_out_changed=lambda v: setattr(self, "mark_out", v),
             on_fmt_changed=self._on_fmt_changed,
             on_prefix_changed=lambda _: self._update_fname_preview(),
-            on_suffix_changed=lambda _: self._update_fname_preview(),
+            on_suffix_crop_changed=lambda _: self._update_fname_preview(),
+            on_suffix_clip_changed=lambda _: self._update_fname_preview(),
+            on_suffix_seq_changed=lambda _: self._update_fname_preview(),
             set_crop_preset=self._set_crop_preset,
             on_add_klip=self._add_clip,
             on_export_crop=lambda: self._export("crop"),
@@ -647,10 +649,9 @@ class Klipwerk(QMainWindow):
             "Prefix added before the filename.\n"
             "e.g. 'project_' → project_myvideo_crop.mp4"
         ))
-        sb.export_suffix.setToolTip(T(
-            "Suffix appended after the filename.\n"
-            "e.g. '_final' → myvideo_crop_final.mp4"
-        ))
+        sb.export_suffix_crop.setToolTip(T("Suffix for cropped-video exports."))
+        sb.export_suffix_clip.setToolTip(T("Suffix for single-clip exports."))
+        sb.export_suffix_seq.setToolTip(T("Suffix for sequence exports."))
         self.btn_preview_seq.setToolTip(T(
             "Play all klips back to back without exporting. Stops after the last klip."
         ))
@@ -887,6 +888,12 @@ class Klipwerk(QMainWindow):
             self.sidebar.info_toggle_lbl.setText("▸")
         self._set_status("ready", ACC)
         self._clear_crop()
+
+        self.clips.clear()
+        self.history = History(self.clips)
+        self.active_clip = -1
+        self._render_clips()
+        self._render_timeline()
 
         for b in (self.btn_crop, self.btn_in, self.btn_out, self.btn_add_clip,
                   self.btn_prev, self.btn_play, self.btn_next,
@@ -1331,29 +1338,25 @@ class Klipwerk(QMainWindow):
     # =============================================================
     # Section 4 — Filenames, codec note, export
     # =============================================================
-    def _build_out_stem(self, core: str) -> str:
+    def _build_out_stem(self, core: str, mode_suf: str = "") -> str:
         pre = self.sidebar.export_prefix.text().strip()
-        suf = self.sidebar.export_suffix.text().strip()
-        return _sanitize(pre) + _sanitize(core) + _sanitize(suf)
+        return _sanitize(pre) + _sanitize(core) + _sanitize(mode_suf)
 
     def _update_fname_preview(self) -> None:
         if not self.video_path:
             self.sidebar.fname_preview.setText("")
             self.sidebar.fname_preview_crop.setText("")
             return
+        sb  = self.sidebar
         fmt = self._current_format().container
         stem = Path(self.video_path).stem
 
-        crop_out = self._build_out_stem(f"{stem}_crop")
-        if 0 <= self.active_clip < len(self.clips):
-            clip_name = self.clips[self.active_clip].name.replace(" ", "_")
-        else:
-            clip_name = "clip"
-        clip_out = self._build_out_stem(f"{stem}_{clip_name}")
-        seq_out  = self._build_out_stem(f"{stem}_sequence")
+        crop_out = self._build_out_stem(stem, sb.export_suffix_crop.text().strip())
+        clip_out = self._build_out_stem(stem, sb.export_suffix_clip.text().strip())
+        seq_out  = self._build_out_stem(stem, sb.export_suffix_seq.text().strip())
 
-        self.sidebar.fname_preview_crop.setText(f"→  {crop_out}.{fmt}")
-        self.sidebar.fname_preview.setText(
+        sb.fname_preview_crop.setText(f"→  {crop_out}.{fmt}")
+        sb.fname_preview.setText(
             f"crop:  {crop_out}.{fmt}\n"
             f"{self._k('klip')}:  {clip_out}.{fmt}\n"
             f"seq:   {seq_out}.{fmt}"
@@ -1414,13 +1417,13 @@ class Klipwerk(QMainWindow):
         out_dir = Path(self.video_path).parent
         stem = Path(self.video_path).stem
 
-        mode_cores = {
-            "crop":     f"{stem}_crop",
-            "clip":     (f"{stem}_{self.clips[self.active_clip].name.replace(' ', '_')}"
-                         if 0 <= self.active_clip < len(self.clips) else f"{stem}_clip"),
-            "sequence": f"{stem}_sequence",
+        sb = self.sidebar
+        mode_suf = {
+            "crop":     sb.export_suffix_crop.text().strip(),
+            "clip":     sb.export_suffix_clip.text().strip(),
+            "sequence": sb.export_suffix_seq.text().strip(),
         }
-        suggested = self._build_out_stem(mode_cores.get(mode, stem))
+        suggested = self._build_out_stem(stem, mode_suf.get(mode, ""))
 
         out_path, _ = QFileDialog.getSaveFileName(
             self, "Save As", str(out_dir / f"{suggested}.{fmt}"),
@@ -1682,9 +1685,11 @@ class Klipwerk(QMainWindow):
         if blob is not None:
             self.restoreGeometry(blob)
 
-        # Filename prefix / suffix — plain text, no signal cascade.
+        # Filename prefix / per-mode suffixes — plain text, no signal cascade.
         self.sidebar.export_prefix.setText(s.prefix(default=""))
-        self.sidebar.export_suffix.setText(s.suffix(default="_crop"))
+        self.sidebar.export_suffix_crop.setText(s.suffix_crop(default="_crop"))
+        self.sidebar.export_suffix_clip.setText(s.suffix_clip(default="_clip"))
+        self.sidebar.export_suffix_seq.setText(s.suffix_seq(default="_seq"))
 
         # Format → this triggers _on_fmt_changed and overwrites
         # CRF / preset with the format's defaults.
@@ -1737,7 +1742,9 @@ class Klipwerk(QMainWindow):
         s = self.settings
         s.set_geometry(self.saveGeometry())
         s.set_prefix(self.sidebar.export_prefix.text())
-        s.set_suffix(self.sidebar.export_suffix.text())
+        s.set_suffix_crop(self.sidebar.export_suffix_crop.text())
+        s.set_suffix_clip(self.sidebar.export_suffix_clip.text())
+        s.set_suffix_seq(self.sidebar.export_suffix_seq.text())
         s.set_fmt_index(self.sidebar.export_fmt.currentIndex())
         s.set_crf(self.sidebar.export_crf.value())
         s.set_preset(self.sidebar.export_preset.currentText())

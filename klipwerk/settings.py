@@ -32,6 +32,9 @@ K_CRF           = "export/crf"
 K_PRESET        = "export/preset"
 K_PREFIX        = "export/prefix"
 K_SUFFIX        = "export/suffix"
+K_SUFFIX_CROP   = "export/suffix_crop"
+K_SUFFIX_CLIP   = "export/suffix_clip"
+K_SUFFIX_SEQ    = "export/suffix_seq"
 K_USE_K_MODE    = "ui/use_k_mode"
 K_SIDEBAR_SPLIT = "ui/sidebar_splitter"
 
@@ -113,6 +116,24 @@ class Settings:
 
     def set_suffix(self, v: str) -> None:
         self._set(K_SUFFIX, str(v))
+
+    def suffix_crop(self, default: str = "_crop") -> str:
+        return self._get(K_SUFFIX_CROP, default, str)
+
+    def set_suffix_crop(self, v: str) -> None:
+        self._set(K_SUFFIX_CROP, str(v))
+
+    def suffix_clip(self, default: str = "_clip") -> str:
+        return self._get(K_SUFFIX_CLIP, default, str)
+
+    def set_suffix_clip(self, v: str) -> None:
+        self._set(K_SUFFIX_CLIP, str(v))
+
+    def suffix_seq(self, default: str = "_seq") -> str:
+        return self._get(K_SUFFIX_SEQ, default, str)
+
+    def set_suffix_seq(self, v: str) -> None:
+        self._set(K_SUFFIX_SEQ, str(v))
 
     # ── UI toggles ─────────────────────────────────────────────────
     def use_k_mode(self, default: bool = True) -> bool:
