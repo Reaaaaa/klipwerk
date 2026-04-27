@@ -164,7 +164,7 @@ klipwerk/
 
 ## Architecture highlights
 
-- **Pure-function export planner** (`SequencePlan`) — the fast-copy decision and argv construction are fully testable without Qt, covered by 38 dedicated unit tests.
+- **Pure-function export planner** (`SequencePlan`) — the fast-copy decision, argv construction, and GIF filter chain are fully testable without Qt, covered by dedicated unit tests in `tests/test_export_builder.py`.
 - **Command-pattern undo/redo** — edits push/pop `Command` objects; no deep-copying the clip list on every action.
 - **Vectorized waveform** — `numpy.reshape` + `max(axis=1)` avoids a Python loop over samples, keeping peak extraction fast even for longer files.
 - **Platform-safe subprocess flags** — `CREATE_NO_WINDOW` is gated behind `getattr` so the same code path works on Linux and macOS without `AttributeError`.
