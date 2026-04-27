@@ -2,7 +2,7 @@
 
 <img src="assets/logo.svg" alt="KLIPWERK" width="315"/>
 
-**Fast, keyboard-driven video trimming and cropping — powered by ffmpeg.**
+**clips, sequences, trim, crop, convert**
 
 [![CI](https://github.com/Reaaaaa/klipwerk/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Reaaaaa/klipwerk/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue?logo=python&logoColor=white)](https://www.python.org/)
