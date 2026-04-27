@@ -37,6 +37,8 @@ K_SUFFIX_CLIP   = "export/suffix_clip"
 K_SUFFIX_SEQ    = "export/suffix_seq"
 K_USE_K_MODE    = "ui/use_k_mode"
 K_SIDEBAR_SPLIT = "ui/sidebar_splitter"
+K_GIF_FPS       = "gif/fps"
+K_GIF_WIDTH     = "gif/width"
 
 
 class Settings:
@@ -154,6 +156,21 @@ class Settings:
 
     def set_sidebar_splitter(self, blob: QByteArray) -> None:
         self._set(K_SIDEBAR_SPLIT, blob)
+
+    # ── GIF export preferences ─────────────────────────────────────
+    def gif_fps(self, default: int = 12) -> int:
+        """Last-used GIF frame rate (8 / 12 / 15 / 24)."""
+        return self._get(K_GIF_FPS, default, int)
+
+    def set_gif_fps(self, v: int) -> None:
+        self._set(K_GIF_FPS, int(v))
+
+    def gif_width(self, default: int = 0) -> int:
+        """Last-used GIF output width in pixels; 0 means original size."""
+        return self._get(K_GIF_WIDTH, default, int)
+
+    def set_gif_width(self, v: int) -> None:
+        self._set(K_GIF_WIDTH, int(v))
 
     # ── Misc ───────────────────────────────────────────────────────
     def sync(self) -> None:

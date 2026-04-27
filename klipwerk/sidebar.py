@@ -93,6 +93,12 @@ class SidebarRefs:
     btn_ex_seq: QPushButton
     btn_ex_clip: QPushButton
 
+    # GIF export
+    gif_fps:         GuardedComboBox
+    gif_width:       GuardedComboBox
+    btn_ex_gif_clip: QPushButton
+    btn_ex_gif_seq:  QPushButton
+
 
 def build_sidebar(
     *,
@@ -109,6 +115,8 @@ def build_sidebar(
     on_export_crop: Callable[[], None],
     on_export_clip: Callable[[], None],
     on_export_seq: Callable[[], None],
+    on_export_gif_clip: Callable[[], None],
+    on_export_gif_seq: Callable[[], None],
 ) -> SidebarRefs:
     """Build the sidebar and wire up all callbacks. Returns all widget refs."""
     root = QWidget()
@@ -303,6 +311,43 @@ def build_sidebar(
     export_lay.addWidget(btn_ex_seq)
     export_lay.addWidget(btn_ex_clip)
 
+    # ── GIF export section ─────────────────────────────────────────
+    export_lay.addWidget(hsep())
+    export_lay.addWidget(section_label("GIF Export"))
+
+    gif_fps = GuardedComboBox()
+    gif_fps.addItems(["8 fps", "12 fps", "15 fps", "24 fps"])
+    gif_fps.setCurrentIndex(1)   # 12 fps default
+
+    gif_width = GuardedComboBox()
+    gif_width.addItems(["320 px", "480 px", "640 px", "Original"])
+    gif_width.setCurrentIndex(3)  # Original default
+
+    gif_grid_wrap = QWidget()
+    gif_outer = QHBoxLayout(gif_grid_wrap)
+    gif_outer.setContentsMargins(10, 0, 0, 0)
+    gif_outer.setSpacing(0)
+    gif_grid = QGridLayout()
+    gif_grid.setSpacing(7)
+    gif_grid.setColumnStretch(1, 1)
+    lgf = label("FPS",   color=MUTED2, size=12); lgf.setFixedWidth(52)
+    lgw = label("Width", color=MUTED2, size=12); lgw.setFixedWidth(52)
+    gif_grid.addWidget(lgf, 0, 0); gif_grid.addWidget(gif_fps,   0, 1)
+    gif_grid.addWidget(lgw, 1, 0); gif_grid.addWidget(gif_width, 1, 1)
+    gif_outer.addLayout(gif_grid)
+    export_lay.addWidget(gif_grid_wrap)
+
+    btn_ex_gif_clip = btn("  Klip → GIF")
+    btn_ex_gif_seq  = btn("  Seq → GIF")
+    for b in (btn_ex_gif_clip, btn_ex_gif_seq):
+        b.setFixedHeight(34)
+    btn_ex_gif_clip.clicked.connect(on_export_gif_clip)
+    btn_ex_gif_seq.clicked.connect(on_export_gif_seq)
+    btn_ex_gif_clip.setDisabled(True)
+    btn_ex_gif_seq.setDisabled(True)
+    export_lay.addWidget(btn_ex_gif_clip)
+    export_lay.addWidget(btn_ex_gif_seq)
+
     # ── Wrap scrollable regions & assemble ────────────────────────
     # Top section: crop + mark, scrollable together
     sections_w = QWidget()
@@ -394,6 +439,10 @@ def build_sidebar(
         fname_preview=fname_preview,
         btn_ex_seq=btn_ex_seq,
         btn_ex_clip=btn_ex_clip,
+        gif_fps=gif_fps,
+        gif_width=gif_width,
+        btn_ex_gif_clip=btn_ex_gif_clip,
+        btn_ex_gif_seq=btn_ex_gif_seq,
     )
 
 

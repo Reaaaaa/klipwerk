@@ -4,7 +4,7 @@ from __future__ import annotations
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QFrame, QLabel, QPushButton, QWidget
 
-from ..ui.theme import BORDER, BORDER2, MUTED2, TEXT
+from ..ui.theme import BORDER, BORDER2, FONT_BUMP, MUTED2, TEXT
 
 
 def btn(
@@ -44,9 +44,13 @@ def label(
     bold: bool = False,
     size: int = 13,
 ) -> QLabel:
-    """Create a styled QLabel with our preferred font size / weight."""
+    """Create a styled QLabel with our preferred font size / weight.
+
+    ``size`` is the *base* size; ``FONT_BUMP`` from ``theme.py`` is added
+    automatically so changing the one constant scales the whole UI.
+    """
     lbl = QLabel(text)
-    style = f"color:{color}; font-size:{size}px;"
+    style = f"color:{color}; font-size:{size + FONT_BUMP}px;"
     if bold:
         style += "font-weight:bold;"
     lbl.setStyleSheet(style)
@@ -65,7 +69,7 @@ def section_label(text: str) -> QLabel:
     """An ALL-CAPS muted section header."""
     lbl = QLabel(text.upper())
     lbl.setStyleSheet(
-        f"color:{MUTED2}; font-size:10px; letter-spacing:2px; "
+        f"color:{MUTED2}; font-size:{10 + FONT_BUMP}px; letter-spacing:2px; "
         f"font-weight:bold; padding: 2px 0;"
     )
     return lbl

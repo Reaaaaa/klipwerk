@@ -28,6 +28,7 @@ from ..ui.theme import (
     ACC2,
     BG,
     BORDER2,
+    FONT_BUMP,
     MUTED,
     MUTED2,
     S1,
@@ -99,11 +100,12 @@ class SequencePreviewWindow(QWidget):
     def _build_ui(self) -> None:
         self.setStyleSheet(
             f"QWidget {{ background:{BG}; color:{TEXT};"
-            f" font-family:'Consolas','Courier New',monospace; }}"
+            f" font-family:'Consolas','Courier New',monospace;"
+            f" font-size:{13 + FONT_BUMP}px; }}"
             f"QLabel  {{ background:transparent; }}"
             f"QPushButton {{ background:{S3}; border:2px solid {BORDER2};"
             f" color:{TEXT}; padding:4px 12px; border-radius:4px;"
-            f" font-size:12px; outline:none; }}"
+            f" font-size:{12 + FONT_BUMP}px; outline:none; }}"
             f"QPushButton:hover  {{ border-color:{ACC}; color:{ACC}; }}"
             f"QPushButton:pressed {{ background:{S2}; }}"
             f"QPushButton:disabled {{ color:{MUTED}; border-color:{BORDER2}; }}"
@@ -137,7 +139,7 @@ class SequencePreviewWindow(QWidget):
 
         self._status_lbl = QLabel("")
         self._status_lbl.setStyleSheet(
-            f"color:{MUTED2}; font-size:11px; background:transparent;"
+            f"color:{MUTED2}; font-size:{11 + FONT_BUMP}px; background:transparent;"
         )
         bar_lay.addWidget(self._status_lbl)
 
@@ -172,7 +174,7 @@ class SequencePreviewWindow(QWidget):
         logo = QLabel(f"KLIP<span style='color:{TEXT}'>WERK</span>")
         logo.setStyleSheet(
             f"color:{ACC}; font-family:'Consolas'; font-weight:900;"
-            f" font-size:15px; background:transparent; letter-spacing:-1px;"
+            f" font-size:{15 + FONT_BUMP}px; background:transparent; letter-spacing:-1px;"
         )
         logo.setTextFormat(Qt.TextFormat.RichText)
 

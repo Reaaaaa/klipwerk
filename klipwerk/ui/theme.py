@@ -7,6 +7,11 @@ hundreds of times and that's the shape that reads best.
 """
 from __future__ import annotations
 
+# ── Font scale ───────────────────────────────────────────────────────────
+# Set FONT_BUMP = 0 to restore the original sizes.
+# Positive values scale everything up uniformly (useful on 2K/4K displays).
+FONT_BUMP = 2
+
 # ── Palette ──────────────────────────────────────────────────────────────
 BG      = "#080809"
 S1      = "#0f0f12"
@@ -27,7 +32,7 @@ QWidget {{
     background: {BG};
     color: {TEXT};
     font-family: 'Consolas', 'Courier New', monospace;
-    font-size: 13px;
+    font-size: {13 + FONT_BUMP}px;
 }}
 QLabel {{ background: transparent; }}
 
@@ -38,8 +43,8 @@ QPushButton {{
     color: {TEXT};
     padding: 6px 14px;
     border-radius: 4px;
-    font-size: 12px;
-    min-height: 26px;
+    font-size: {12 + FONT_BUMP}px;
+    min-height: {26 + FONT_BUMP}px;
     outline: none;
 }}
 QPushButton:hover  {{ border-color: {ACC}; color: {ACC}; background: {S3}; }}
@@ -49,7 +54,7 @@ QPushButton:disabled {{ color: {MUTED}; border-color: {BORDER}; background: {S2}
 
 QPushButton#accent {{
     background: {ACC}; color: #000;
-    border-color: {ACC}; font-weight: bold; font-size: 12px;
+    border-color: {ACC}; font-weight: bold; font-size: {12 + FONT_BUMP}px;
 }}
 QPushButton#accent:hover  {{ background: #d4ff45; border-color: #d4ff45; color: #000; }}
 QPushButton#accent:pressed {{ background: #b8e030; color: #000; }}
@@ -65,7 +70,7 @@ QPushButton#danger:focus {{ outline: none; }}
    min-height from the base rule; colour/border stay inherited. */
 QPushButton[compact="true"] {{
     padding: 4px 10px;
-    font-size: 11px;
+    font-size: {11 + FONT_BUMP}px;
     min-height: 0px;
 }}
 
@@ -83,7 +88,7 @@ QSlider::sub-page:horizontal {{ background: {ACC}; border-radius: 3px; }}
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
     background: {S3}; border: 1px solid {BORDER2};
     color: {TEXT}; padding: 4px 7px; border-radius: 5px;
-    font-size: 12px; min-height: 24px;
+    font-size: {12 + FONT_BUMP}px; min-height: {24 + FONT_BUMP}px;
 }}
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
     border-color: {ACC}; outline: none;
@@ -136,7 +141,7 @@ QToolTip {{
     border: 1px solid {ACC3};
     border-radius: 5px;
     padding: 6px 10px;
-    font-size: 11px;
+    font-size: {11 + FONT_BUMP}px;
     font-family: 'Consolas', 'Courier New', monospace;
     opacity: 240;
 }}

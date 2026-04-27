@@ -11,6 +11,7 @@ from PyQt6.QtGui import (
     QPen,
     QPixmap,
     QResizeEvent,
+    QWheelEvent,
 )
 from PyQt6.QtWidgets import QLabel, QSizePolicy
 
@@ -27,7 +28,8 @@ class PreviewWidget(QLabel):
     border with a rule-of-thirds overlay.
     """
 
-    cropChanged = pyqtSignal(dict)   # emits {x, y, w, h} in video pixels
+    cropChanged   = pyqtSignal(dict)  # emits {x, y, w, h} in video pixels
+    wheelScrolled = pyqtSignal(int)  # emits step count (neg = back, pos = forward)
 
     def __init__(self):
         super().__init__()
@@ -59,6 +61,8 @@ class PreviewWidget(QLabel):
 
     # ── Frame update ────────────────────────────────────────────────
     def set_frame(self, pixmap: QPixmap, vid_w: int, vid_h: int) -> None:
+        # Re-enable opaque painting now that we own the full canvas again.
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
         self._pixmap_base = pixmap
         self._vid_w = vid_w
         self._vid_h = vid_h
@@ -70,6 +74,9 @@ class PreviewWidget(QLabel):
         self._pixmap_base = None
         self._vid_w = self._vid_h = 0
         self.crop_rect = None
+        # Disable opaque painting so Qt erases the background before drawing
+        # the placeholder text — otherwise the last video frame shows through.
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
         self.clear()
         self.setText("Drop a video here\nor click  Open File")
 
@@ -224,6 +231,20 @@ class PreviewWidget(QLabel):
             crop: CropRect = {"x": vx, "y": vy, "w": vw, "h": vh}
             self.cropChanged.emit(crop)
         self.set_crop_mode(False)
+
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        """Scroll wheel steps through frames; Shift+wheel = 10 frames."""
+        if self._pixmap_base is None:
+            super().wheelEvent(event)
+            return
+        delta = event.angleDelta().y()
+        if delta == 0:
+            super().wheelEvent(event)
+            return
+        steps = 10 if event.modifiers() & Qt.KeyboardModifier.ShiftModifier else 1
+        # scroll up (delta > 0) → step backward; scroll down → step forward
+        self.wheelScrolled.emit(-steps if delta > 0 else steps)
+        event.accept()
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)

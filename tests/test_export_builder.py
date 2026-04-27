@@ -13,6 +13,7 @@ from klipwerk.core.export_builder import (
     build_segment_cmd,
     can_fast_copy,
     crop_vf_args,
+    gif_vf,
 )
 from klipwerk.core.models import Clip, CropRect
 
@@ -213,3 +214,65 @@ class TestCropVfArgs:
         cr: CropRect = {"x": 5, "y": 7, "w": w, "h": h}
         args = crop_vf_args(cr)
         assert args == ["-vf", f"crop={expected_w}:{expected_h}:5:7"]
+
+
+# ── gif_vf ─────────────────────────────────────────────────────────────
+class TestGifVf:
+    def test_no_crop_no_scale(self) -> None:
+        vf = gif_vf(12, None)
+        assert vf.startswith("fps=12,split")
+        assert "crop" not in vf
+        assert "scale" not in vf
+
+    def test_no_crop_with_scale(self) -> None:
+        vf = gif_vf(15, 480)
+        assert "fps=15" in vf
+        assert "scale=480:-1:flags=lanczos" in vf
+        assert "crop" not in vf
+
+    def test_with_crop_no_scale(self) -> None:
+        cr: CropRect = {"x": 10, "y": 20, "w": 640, "h": 360}
+        vf = gif_vf(12, None, cr)
+        # crop must come first, then fps
+        assert vf.startswith("crop=640:360:10:20,fps=12,split")
+        assert "scale" not in vf
+
+    def test_with_crop_and_scale(self) -> None:
+        cr: CropRect = {"x": 0, "y": 0, "w": 1280, "h": 720}
+        vf = gif_vf(8, 320, cr)
+        assert "crop=1280:720:0:0" in vf
+        assert "fps=8" in vf
+        assert "scale=320:-1:flags=lanczos" in vf
+
+    def test_palette_chain_always_present(self) -> None:
+        for vf in (gif_vf(12, None), gif_vf(12, 480), gif_vf(8, 320, {"x": 0, "y": 0, "w": 100, "h": 100})):
+            assert "split[s0][s1]" in vf
+            assert "palettegen=" in vf
+            assert "paletteuse=" in vf
+
+    def test_crop_precedes_fps_precedes_scale(self) -> None:
+        cr: CropRect = {"x": 5, "y": 5, "w": 200, "h": 100}
+        vf = gif_vf(12, 320, cr)
+        crop_pos  = vf.index("crop=")
+        fps_pos   = vf.index("fps=")
+        scale_pos = vf.index("scale=")
+        assert crop_pos < fps_pos < scale_pos
+
+    @pytest.mark.parametrize("fps", [8, 12, 15, 24])
+    def test_fps_token_correct(self, fps: int) -> None:
+        vf = gif_vf(fps, None)
+        assert f"fps={fps}" in vf
+
+    @pytest.mark.parametrize("width", [320, 480, 640])
+    def test_width_token_correct(self, width: int) -> None:
+        vf = gif_vf(12, width)
+        assert f"scale={width}:-1:flags=lanczos" in vf
+
+    def test_palette_uses_bayer_dither(self) -> None:
+        vf = gif_vf(12, 480)
+        assert "dither=bayer" in vf
+        assert "bayer_scale=5" in vf
+
+    def test_palettegen_stats_mode_diff(self) -> None:
+        vf = gif_vf(12, None)
+        assert "stats_mode=diff" in vf

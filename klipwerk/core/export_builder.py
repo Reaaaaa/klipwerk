@@ -219,3 +219,49 @@ def plan_sequence_export(
         fast_copy=fast,
         status_text=status_text,
     )
+
+
+# ── GIF export helpers ─────────────────────────────────────────────────
+GIF_WARN_SECS: float = 15.0   # ask the user to confirm above this
+GIF_MAX_SECS:  float = 30.0   # hard block above this
+
+
+def gif_vf(
+    fps: int,
+    width: int | None,
+    crop: CropRect | None = None,
+) -> str:
+    """Build the ffmpeg ``-vf`` filtergraph for a high-quality GIF export.
+
+    Uses a two-branch palette optimisation: ``palettegen`` analyses the
+    full clip to build a 256-colour palette tuned for the actual content
+    (``stats_mode=diff`` weights changing pixels more), then
+    ``paletteuse`` applies Bayer dithering against that palette.
+
+    Filter order:
+
+    1. ``crop`` (optional) — trim to the region of interest first so the
+       palette is built from the exact pixels the user will see.
+    2. ``fps`` — drop/duplicate frames to the target rate.
+    3. ``scale`` (optional) — resize to *width* pixels wide; height is
+       kept proportional (``-1``).
+    4. ``split`` → ``palettegen`` / ``paletteuse`` — palette build + apply.
+
+    Parameters:
+        fps    — target frame rate (e.g. 8, 12, 15, 24).
+        width  — output width in pixels.  ``None`` keeps the original
+                 (or post-crop) resolution.
+        crop   — optional crop rect applied before fps and scale.
+    """
+    parts: list[str] = []
+    if crop:
+        parts.append(f"crop={crop['w']}:{crop['h']}:{crop['x']}:{crop['y']}")
+    parts.append(f"fps={fps}")
+    if width is not None:
+        parts.append(f"scale={width}:-1:flags=lanczos")
+    chain = ",".join(parts)
+    return (
+        f"{chain},split[s0][s1];"
+        f"[s0]palettegen=max_colors=256:stats_mode=diff[p];"
+        f"[s1][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"
+    )

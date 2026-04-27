@@ -51,7 +51,13 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from .core.export_builder import crop_vf_args, plan_sequence_export
+from .core.export_builder import (
+    GIF_MAX_SECS,
+    GIF_WARN_SECS,
+    crop_vf_args,
+    gif_vf,
+    plan_sequence_export,
+)
 from .core.ffmpeg_runner import ffmpeg_bin
 from .core.formats import FORMATS, codec_args, pick_default_for
 from .core.models import Clip, CropRect
@@ -73,6 +79,7 @@ from .ui.theme import (
     BG,
     BORDER,
     BORDER2,
+    FONT_BUMP,
     MUTED,
     MUTED2,
     S1,
@@ -143,6 +150,7 @@ class Klipwerk(QMainWindow):
         self.clips: list[Clip] = []
         self.history = History(self.clips)
         self.active_clip: int = -1
+        self._autopause_out: bool = False
 
         # Widget index → we diff the clip list against these to avoid
         # destroying/rebuilding every row on every edit.
@@ -204,7 +212,7 @@ class Klipwerk(QMainWindow):
         logo = QLabel(f"KLIP<span style='color:{TEXT}'>WERK</span>")
         logo.setStyleSheet(
             f"color:{ACC}; font-family:'Consolas'; font-weight:900; "
-            f"font-size:17px; background:transparent; letter-spacing:-1px;"
+            f"font-size:{17 + FONT_BUMP}px; background:transparent; letter-spacing:-1px;"
         )
         logo.setTextFormat(Qt.TextFormat.RichText)
 
@@ -214,7 +222,7 @@ class Klipwerk(QMainWindow):
         sep.setFixedSize(1, 24)
 
         self.status_dot = QLabel("●")
-        self.status_dot.setStyleSheet(f"color:{ACC}; font-size:13px; background:transparent;")
+        self.status_dot.setStyleSheet(f"color:{ACC}; font-size:{13 + FONT_BUMP}px; background:transparent;")
         self.status_label = label("ready", color=MUTED2, size=12)
 
         self.fname_label = label("", color=MUTED2, size=12)
@@ -284,6 +292,7 @@ class Klipwerk(QMainWindow):
         left_lay.addWidget(self._build_toolbar())
         self.preview = PreviewWidget()
         self.preview.cropChanged.connect(self._on_crop_drawn)
+        self.preview.wheelScrolled.connect(self._step)
         left_lay.addWidget(self.preview, 1)
         left_lay.addWidget(self._build_playback())
 
@@ -302,6 +311,8 @@ class Klipwerk(QMainWindow):
             on_export_crop=lambda: self._export("crop"),
             on_export_clip=lambda: self._export("clip"),
             on_export_seq=lambda: self._export("sequence"),
+            on_export_gif_clip=lambda: self._export_gif("clip"),
+            on_export_gif_seq=lambda: self._export_gif("seq"),
         )
         self.sidebar.widget.setMinimumWidth(260)
         self.sidebar.info_header.mousePressEvent = (
@@ -371,7 +382,7 @@ class Klipwerk(QMainWindow):
         self.btn_tips.toggled.connect(self._toggle_tooltips)
         self.btn_tips.setStyleSheet(
             f"QPushButton {{ background:{S3}; border:2px solid {BORDER2};"
-            f" color:{MUTED2}; font-size:11px; border-radius:4px;"
+            f" color:{MUTED2}; font-size:{11 + FONT_BUMP}px; border-radius:4px;"
             f" padding:4px 10px; outline:none; }}"
             f"QPushButton:checked {{ background:{S2}; border-color:{ACC3}; color:{ACC3}; }}"
             f"QPushButton:hover {{ border-color:{ACC3}; color:{ACC3}; }}"
@@ -387,7 +398,7 @@ class Klipwerk(QMainWindow):
         self.btn_klip_toggle.setToolTip("Toggle between 'Klip' (K) and 'Clip' (C)")
         self.btn_klip_toggle.setStyleSheet(
             f"QPushButton {{ background:{S3}; border:2px solid {BORDER2};"
-            f" color:{MUTED2}; font-size:11px; font-weight:bold;"
+            f" color:{MUTED2}; font-size:{11 + FONT_BUMP}px; font-weight:bold;"
             f" border-radius:4px; padding:4px 10px; outline:none; }}"
             f"QPushButton:checked {{ background:{S2}; border-color:{ACC}; color:{ACC}; }}"
             f"QPushButton:hover {{ border-color:{ACC}; color:{ACC}; }}"
@@ -427,7 +438,7 @@ class Klipwerk(QMainWindow):
 
         transport_style = (
             f"QPushButton {{ background:{S3}; border:2px solid {BORDER2};"
-            f" color:{TEXT}; font-size:15px; font-weight:bold;"
+            f" color:{TEXT}; font-size:{15 + FONT_BUMP}px; font-weight:bold;"
             f" border-radius:4px; outline:none; }}"
             f"QPushButton:hover {{ border-color:{ACC}; color:{ACC}; background:{S3}; }}"
             f"QPushButton:pressed {{ background:{S2}; color:{TEXT}; }}"
@@ -435,7 +446,7 @@ class Klipwerk(QMainWindow):
         )
         play_style = (
             f"QPushButton {{ background:{ACC}; border:2px solid {ACC};"
-            f" color:#000; font-size:15px; font-weight:bold;"
+            f" color:#000; font-size:{15 + FONT_BUMP}px; font-weight:bold;"
             f" border-radius:4px; outline:none; }}"
             f"QPushButton:hover {{ background:#d4ff45; border-color:#d4ff45; color:#000; }}"
             f"QPushButton:pressed {{ background:#b8e030; color:#000; }}"
@@ -452,6 +463,21 @@ class Klipwerk(QMainWindow):
         self.btn_prev.clicked.connect(lambda: self._step(-1))
         self.btn_play.clicked.connect(self._toggle_play)
         self.btn_next.clicked.connect(lambda: self._step(1))
+
+        self.btn_autopause = btn("⏸  at Out", compact=True)
+        self.btn_autopause.setFixedHeight(32)
+        self.btn_autopause.setCheckable(True)
+        self.btn_autopause.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.btn_autopause.setDisabled(True)
+        self.btn_autopause.toggled.connect(self._on_autopause_toggled)
+        self.btn_autopause.setStyleSheet(
+            f"QPushButton {{ background:{S3}; border:2px solid {BORDER2};"
+            f" color:{MUTED2}; font-size:{11 + FONT_BUMP}px; border-radius:4px;"
+            f" padding:4px 10px; outline:none; }}"
+            f"QPushButton:checked {{ background:{S2}; border-color:{ACC3}; color:{ACC3}; }}"
+            f"QPushButton:hover {{ border-color:{ACC3}; color:{ACC3}; }}"
+            f"QPushButton:disabled {{ color:{MUTED}; border-color:{BORDER}; }}"
+        )
 
         self.timecode = label("--:--:-- / --:--:--", color=MUTED2, size=11)
         self.timecode.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
@@ -472,6 +498,7 @@ class Klipwerk(QMainWindow):
         ctrl.addWidget(self.btn_play)
         ctrl.addWidget(self.btn_next)
         ctrl.addStretch()
+        ctrl.addWidget(self.btn_autopause)
 
         lay.addWidget(self.scrubber)
         lay.addLayout(marker_row)
@@ -524,6 +551,8 @@ class Klipwerk(QMainWindow):
         sc("Space",        self._toggle_play)
         sc("I",            lambda: self._set_mark("in"))
         sc("O",            lambda: self._set_mark("out"))
+        sc("Shift+I",      lambda: self._seek_to(self.mark_in))
+        sc("Shift+O",      lambda: self._seek_to(self.mark_out))
         sc("C",            self._add_clip)
         sc("Left",         lambda: self._step(-1))
         sc("Right",        lambda: self._step(1))
@@ -541,7 +570,7 @@ class Klipwerk(QMainWindow):
         lbl = QLabel(self.centralWidget())
         lbl.setStyleSheet(
             f"QLabel {{ background:{S2}; color:{ACC}; border:1px solid {ACC};"
-            f" border-radius:4px; padding:3px 9px; font-size:11px;"
+            f" border-radius:4px; padding:3px 9px; font-size:{11 + FONT_BUMP}px;"
             f" font-family:'Consolas','Courier New',monospace; font-weight:bold; }}"
         )
         lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -577,17 +606,21 @@ class Klipwerk(QMainWindow):
             "Drag a region on the preview to define the crop area."
         ))
         self.btn_crop_clr.setToolTip(T("Clear crop selection"))
-        self.btn_in.setToolTip(T("Set In marker  (I)\nStart point for the next klip."))
-        self.btn_out.setToolTip(T("Set Out marker  (O)\nEnd point for the next klip."))
+        self.btn_in.setToolTip(T("Set In marker  (I)\nShift+I → jump to In marker\nStart point for the next klip."))
+        self.btn_out.setToolTip(T("Set Out marker  (O)\nShift+O → jump to Out marker\nEnd point for the next klip."))
         self.btn_add_clip.setToolTip(T(
             "Create klip from the marked range (In → Out)  (C)"
         ))
         self.btn_close_vid.setToolTip(T("Close current video"))
 
         # Playback
-        self.btn_prev.setToolTip(T("1 frame back  (←) · 10 frames: Shift+←"))
+        self.btn_prev.setToolTip(T("1 frame back  (←) · 10 frames: Shift+←\nAlso: scroll wheel on preview"))
         self.btn_play.setToolTip(T("Play / Pause  (Space)"))
-        self.btn_next.setToolTip(T("1 frame forward  (→) · 10 frames: Shift+→"))
+        self.btn_next.setToolTip(T("1 frame forward  (→) · 10 frames: Shift+→\nAlso: scroll wheel on preview"))
+        self.btn_autopause.setToolTip(T(
+            "Auto-pause when playback reaches the Out marker.\n"
+            "Useful for previewing a marked range precisely."
+        ))
 
         # Sidebar — crop
         crop_tips = {
@@ -647,6 +680,24 @@ class Klipwerk(QMainWindow):
             "Export all timeline klips as one continuous video."
         ))
         sb.btn_ex_clip.setToolTip(T("Export only the currently selected klip."))
+        sb.gif_fps.setToolTip(T(
+            "GIF frame rate — lower fps = smaller file, less smooth motion.\n"
+            "12 fps is a good balance for most clips."
+        ))
+        sb.gif_width.setToolTip(T(
+            "GIF output width — lower = much smaller file size.\n"
+            "'Original' keeps the source (or crop) resolution."
+        ))
+        sb.btn_ex_gif_clip.setToolTip(T(
+            "Export the active klip as an animated GIF.\n"
+            "The klip's own crop is applied automatically.\n"
+            "Best for clips up to 15 s — hard limit: 30 s."
+        ))
+        sb.btn_ex_gif_seq.setToolTip(T(
+            "Export all klips as one animated GIF.\n"
+            "Uses the current global crop (if any) for all klips.\n"
+            "Hard limit: 30 s total."
+        ))
         sb.export_prefix.setToolTip(T(
             "Prefix added before the filename.\n"
             "e.g. 'project_' → project_myvideo_crop.mp4"
@@ -694,6 +745,7 @@ class Klipwerk(QMainWindow):
         self.btn_preview_seq.setText("▶  Preview Sequence")
         self.sidebar.btn_ex_clip.setText(f"  Export Active {k('Klip')}")
         self.sidebar.btn_ex_seq.setText(f"  Export {k('Klips')} Sequence")
+        self.sidebar.btn_ex_gif_clip.setText(f"  {k('Klip')} → GIF")
         self.sidebar.klips_section_label.setText(k("Klips"))
         if not self.clips:
             self.tl_info.setText(f"drag {k('Klips')} to reorder")
@@ -772,7 +824,7 @@ class Klipwerk(QMainWindow):
         self.scrubber.setEnabled(True)
         for b in (self.btn_crop, self.btn_in, self.btn_out, self.btn_add_clip,
                   self.btn_prev, self.btn_play, self.btn_next, self.btn_close_vid,
-                  self.btn_preview_seq):
+                  self.btn_preview_seq, self.btn_autopause):
             b.setEnabled(True)
         self.btn_preview_seq.setEnabled(len(self.clips) >= 1)
 
@@ -897,9 +949,11 @@ class Klipwerk(QMainWindow):
         self._render_clips()
         self._render_timeline()
 
+        self._autopause_out = False
+        self.btn_autopause.setChecked(False)
         for b in (self.btn_crop, self.btn_in, self.btn_out, self.btn_add_clip,
                   self.btn_prev, self.btn_play, self.btn_next,
-                  self.btn_close_vid, self.btn_preview_seq):
+                  self.btn_close_vid, self.btn_preview_seq, self.btn_autopause):
             b.setEnabled(False)
         self.scrubber.clear_video()
         self.timecode.setText("--:--:-- / --:--:--")
@@ -919,7 +973,13 @@ class Klipwerk(QMainWindow):
         self.current_t = self.cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
         self._show_frame(frame)
         self._update_scrubber()
+        if self._autopause_out and self.current_t >= self.mark_out:
+            self._seek_to(self.mark_out)
+            self._stop()
 
+
+    def _on_autopause_toggled(self, checked: bool) -> None:
+        self._autopause_out = checked
 
     def _toggle_play(self) -> None:
         if self.playing:
@@ -1201,6 +1261,7 @@ class Klipwerk(QMainWindow):
         self._render_clips()
         self._render_timeline()
         self.sidebar.btn_ex_clip.setEnabled(True)
+        self.sidebar.btn_ex_gif_clip.setEnabled(True)
         self._update_fname_preview()
 
     def _preview_clip(self, idx: int) -> None:
@@ -1272,9 +1333,11 @@ class Klipwerk(QMainWindow):
 
         layout.addStretch()
         self.sidebar.btn_ex_seq.setEnabled(len(self.clips) >= 2)
+        self.sidebar.btn_ex_gif_seq.setEnabled(len(self.clips) >= 2)
         self.btn_preview_seq.setEnabled(len(self.clips) >= 1)
         if self.active_clip < 0 or self.active_clip >= len(self.clips):
             self.sidebar.btn_ex_clip.setEnabled(False)
+            self.sidebar.btn_ex_gif_clip.setEnabled(False)
 
     def _render_timeline(self) -> None:
         while self.tl_lay.count():
@@ -1511,6 +1574,137 @@ class Klipwerk(QMainWindow):
         self._worker = worker
         worker.start()
 
+    def _export_gif(self, mode: str) -> None:
+        """Export a clip or sequence as an animated GIF.
+
+        Duration tiers (per :data:`GIF_WARN_SECS` / :data:`GIF_MAX_SECS`):
+
+        * ≤ 15 s — silent, proceed immediately.
+        * 15 – 30 s — warn the user (large file likely), ask to confirm.
+        * > 30 s — hard block with an error dialog.
+        """
+        if not self.video_path:
+            return
+
+        if mode == "clip":
+            if not (0 <= self.active_clip < len(self.clips)):
+                QMessageBox.warning(self, "Klipwerk", "Kein Klip ausgewählt.")
+                return
+            duration = self.clips[self.active_clip].duration
+        else:  # seq
+            if len(self.clips) < 2:
+                QMessageBox.warning(
+                    self, "Klipwerk",
+                    "Mindestens 2 Klips für Sequence-GIF benötigt.",
+                )
+                return
+            duration = sum(c.duration for c in self.clips)
+
+        # ── Duration guards ────────────────────────────────────────
+        if duration > GIF_MAX_SECS:
+            QMessageBox.critical(
+                self, "Klipwerk — GIF Export",
+                f"Dauer {duration:.1f} s überschreitet das Maximum von "
+                f"{GIF_MAX_SECS:.0f} s.\n"
+                "Kürze die Auswahl auf maximal 30 Sekunden, bevor du als GIF exportierst.",
+            )
+            return
+
+        if duration > GIF_WARN_SECS:
+            ret = QMessageBox.warning(
+                self, "Klipwerk — GIF Export",
+                f"Dieses GIF wird {duration:.1f} s lang. "
+                "Lange GIFs können sehr groß werden.\nTrotzdem fortfahren?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if ret != QMessageBox.StandardButton.Yes:
+                return
+
+        # ── Output path ────────────────────────────────────────────
+        stem = Path(self.video_path).stem
+        suf  = "_gif" if mode == "clip" else "_seq_gif"
+        out_stem = _sanitize(self.sidebar.export_prefix.text().strip()) + _sanitize(stem + suf)
+        out_dir  = Path(self.video_path).parent
+
+        out_path, _ = QFileDialog.getSaveFileName(
+            self, "GIF speichern", str(out_dir / f"{out_stem}.gif"),
+            "GIF Image (*.gif)",
+        )
+        if not out_path:
+            return
+
+        # ── Build ffmpeg command ───────────────────────────────────
+        self._stop()
+        gif_fps = self._gif_fps()
+        gif_w   = self._gif_width()
+
+        if mode == "clip":
+            c   = self.clips[self.active_clip]
+            vf  = gif_vf(gif_fps, gif_w, c.crop)
+            cmd = [
+                ffmpeg_bin(), "-y",
+                "-ss", str(c.start), "-t", str(c.duration),
+                "-i", self.video_path,
+                "-vf", vf,
+                out_path,
+            ]
+        else:
+            cmd = self._build_gif_seq_cmd(out_path, gif_fps, gif_w)
+
+        self._run_simple_export(cmd, out_path)
+
+    def _gif_fps(self) -> int:
+        """Return the GIF fps selected in the sidebar (default 12)."""
+        fps_values = [8, 12, 15, 24]
+        idx = self.sidebar.gif_fps.currentIndex()
+        return fps_values[idx] if 0 <= idx < len(fps_values) else 12
+
+    def _gif_width(self) -> int | None:
+        """Return the GIF output width, or ``None`` for original size."""
+        width_values: list[int | None] = [320, 480, 640, None]
+        idx = self.sidebar.gif_width.currentIndex()
+        return width_values[idx] if 0 <= idx < len(width_values) else None
+
+    def _build_gif_seq_cmd(
+        self, out_path: str, gif_fps: int, gif_w: int | None,
+    ) -> list[str]:
+        """Build a single ffmpeg command that concatenates all clips into a GIF.
+
+        Each clip gets the same processing: the current global crop (if
+        any), then fps reduction, then optional rescale.  Per-clip crops
+        are not applied here — using a single crop ensures all inputs
+        share identical dimensions, which the concat filter requires.
+        """
+        cmd = [ffmpeg_bin(), "-y"]
+        for c in self.clips:
+            cmd += ["-ss", str(c.start), "-t", str(c.duration), "-i", self.video_path]
+
+        n    = len(self.clips)
+        crop = self.crop_rect   # global crop — same for every clip
+
+        # Per-clip processing chains
+        per_clip: list[str] = []
+        for i in range(n):
+            steps: list[str] = []
+            if crop:
+                steps.append(f"crop={crop['w']}:{crop['h']}:{crop['x']}:{crop['y']}")
+            steps.append(f"fps={gif_fps}")
+            if gif_w is not None:
+                steps.append(f"scale={gif_w}:-1:flags=lanczos")
+            per_clip.append(f"[{i}:v]" + ",".join(steps) + f"[vc{i}]")
+
+        concat_in  = "".join(f"[vc{i}]" for i in range(n))
+        concat     = f"{concat_in}concat=n={n}:v=1:a=0[vcat]"
+        palette    = (
+            "[vcat]split[s0][s1];"
+            "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
+            "[s1][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"
+        )
+        filter_complex = ";".join(per_clip) + ";" + concat + ";" + palette
+        cmd += ["-filter_complex", filter_complex, out_path]
+        return cmd
+
     # =============================================================
     # Frameless-window event handling
     # =============================================================
@@ -1639,7 +1833,7 @@ class Klipwerk(QMainWindow):
     def _set_status(self, text: str, color: str = ACC) -> None:
         self.status_label.setText(text)
         self.status_dot.setStyleSheet(
-            f"color:{color}; font-size:8px; background:transparent;"
+            f"color:{color}; font-size:{8 + FONT_BUMP}px; background:transparent;"
         )
 
     # ── Settings persistence ────────────────────────────────────────
@@ -1708,6 +1902,14 @@ class Klipwerk(QMainWindow):
             except (RuntimeError, ValueError) as e:
                 log.debug("sidebar_splitter restore failed: %s", e)
 
+        # GIF export preferences — restore fps / width combobox indices.
+        _gif_fps_map   = {8: 0, 12: 1, 15: 2, 24: 3}
+        _gif_width_map = {320: 0, 480: 1, 640: 2, 0: 3}
+        saved_gif_fps = s.gif_fps(default=12)
+        self.sidebar.gif_fps.setCurrentIndex(_gif_fps_map.get(saved_gif_fps, 1))
+        saved_gif_w = s.gif_width(default=0)
+        self.sidebar.gif_width.setCurrentIndex(_gif_width_map.get(saved_gif_w, 3))
+
         # Final fname preview reflects restored prefix/suffix.
         self._update_fname_preview()
 
@@ -1724,6 +1926,18 @@ class Klipwerk(QMainWindow):
         s.set_preset(self.sidebar.export_preset.currentText())
         s.set_use_k_mode(self._use_k_mode)
         s.set_sidebar_splitter(self.sidebar.sections_splitter.saveState())
+        _gif_fps_values   = [8, 12, 15, 24]
+        _gif_width_values = [320, 480, 640, 0]
+        gif_fps_idx = self.sidebar.gif_fps.currentIndex()
+        gif_w_idx   = self.sidebar.gif_width.currentIndex()
+        s.set_gif_fps(
+            _gif_fps_values[gif_fps_idx]
+            if 0 <= gif_fps_idx < len(_gif_fps_values) else 12,
+        )
+        s.set_gif_width(
+            _gif_width_values[gif_w_idx]
+            if 0 <= gif_w_idx < len(_gif_width_values) else 0,
+        )
 
     def closeEvent(self, event) -> None:
         # Persist first — if QSettings can't write for some OS reason,

@@ -8,7 +8,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![PyQt6](https://img.shields.io/badge/UI-PyQt6-41cd52?logo=qt&logoColor=white)](https://pypi.org/project/PyQt6/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-98%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-125%20passing-brightgreen)](tests/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](https://github.com/Reaaaaa/klipwerk)
 
 <br/>
@@ -42,6 +42,7 @@ Under the hood it's a thin, opinionated wrapper around `ffmpeg`. No proprietary 
 | **Sequence export** | Concatenate any number of clips into one video in a single click |
 | **Stream-copy fast path** | No crop + all positive durations → skips re-encoding entirely, making exports significantly faster |
 | **7 output formats** | H.264, H.265, AV1, VP9 across MP4, MKV, WebM |
+| **Animated GIF export** | One click from any clip or the full sequence — two-branch palette filter (palettegen + paletteuse) for best-in-class 256-colour quality. FPS: 8/12/15/24. Width: 320/480/640/original. Tiered 15 s / 30 s duration safety. |
 | **Rich media info** | ffprobe panel: codec, container, bitrate, color space, pixel format, duration |
 | **Settings persistence** | Window geometry, export defaults, format/CRF/preset survive restarts via `QSettings` |
 | **Frameless chrome** | Custom title bar with proper resize handles on all edges |
@@ -82,9 +83,13 @@ Klipwerk calls your existing `ffmpeg` installation — nothing is bundled. It se
 | `Space` | Play / pause |
 | `I` | Set **In** marker at current frame |
 | `O` | Set **Out** marker at current frame |
+| `Shift`+`I` | Jump to **In** marker |
+| `Shift`+`O` | Jump to **Out** marker |
 | `C` | Add clip from In → Out |
 | `←` / `→` | Step one frame |
 | `Shift` + `←` / `→` | Step ten frames |
+| `Scroll wheel` on preview | Step one frame (up = back, down = forward) |
+| `Shift` + `Scroll wheel` | Step ten frames |
 | `Ctrl`+`Z` | Undo |
 | `Ctrl`+`Y` / `Ctrl`+`Shift`+`Z` | Redo |
 | `Delete` | Delete active clip |
@@ -107,7 +112,7 @@ klipwerk --reset-settings  # clear saved preferences
 ```bash
 pip install -e ".[dev]"
 
-pytest                       # run all 107 tests
+pytest                       # run all 125 tests
 pytest -v                    # verbose output
 ruff check klipwerk          # lint
 mypy klipwerk                # type-check

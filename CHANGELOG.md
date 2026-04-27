@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0]
+
+### Added
+- **GIF export** — animated GIF from any clip or the full sequence.
+  - Per-clip crop is applied automatically for **Clip → GIF** exports.
+  - **Seq → GIF** applies the current global crop to all clips and
+    concatenates them into one palette-optimised GIF.
+  - FPS options: 8 / 12 / 15 / 24.  Width options: 320 / 480 / 640 px
+    or Original (no resize).  Both persist across sessions.
+  - Tiered duration safety: silent below 15 s, confirmation dialog
+    15–30 s, hard block above 30 s.
+  - Uses a two-branch ffmpeg palette filter
+    (`palettegen stats_mode=diff` + `paletteuse dither=bayer`) for
+    maximum colour fidelity in 256 colours.
+  - 10 new unit tests for `gif_vf()` in `tests/test_export_builder.py`.
+- **Mouse wheel seek on preview**: scroll up/down on the video preview
+  steps one frame back/forward. `Shift`+scroll = 10 frames.
+- **Shift+I / Shift+O shortcuts**: jump playhead to the In or Out marker
+  without resetting it (previously only setting was possible).
+- **Auto-pause at Out marker** (`⏸ at Out` toggle in the playback bar):
+  when active, playback stops automatically the moment the playhead
+  reaches `mark_out` — useful for previewing a marked range precisely.
+  Resets to off when a video is closed.
+
+### Fixed
+- **Preview not clearing on Close Video**: `WA_OpaquePaintEvent` prevented
+  Qt from erasing the background before drawing the placeholder text, so
+  the last video frame showed through. Flag is now disabled in `reset()`
+  and re-enabled in `set_frame()` when full-canvas rendering resumes.
+
+### Changed
+- **`FONT_BUMP` scale constant** (`ui/theme.py`): a single integer that
+  scales all font sizes uniformly. Set to `2` by default for better
+  readability on 2K/4K displays; set to `0` to restore original sizes.
+  `label()` and `section_label()` in `widgets/helpers.py` apply it
+  automatically; inline stylesheets in `app.py` and `seq_preview.py`
+  reference it via f-string expressions.
+
 ## [0.3.0]
 
 ### Added
