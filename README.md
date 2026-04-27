@@ -1,6 +1,6 @@
 <div align="center">
 
-# ✂ Klipwerk
+<img src="assets/logo.svg" alt="KLIPWERK" width="315"/>
 
 **Fast, keyboard-driven video trimming and cropping — powered by ffmpeg.**
 

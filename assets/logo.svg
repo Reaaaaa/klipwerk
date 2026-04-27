@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 315 76" width="315" height="76">
+  <!-- background -->
+  <rect width="315" height="76" rx="8" fill="#080809"/>
+  <rect width="315" height="76" rx="8" fill="none" stroke="#252530" stroke-width="1"/>
+
+  <!-- accent bar left -->
+  <rect x="0" y="0" width="3" height="76" rx="2" fill="#c8f53a"/>
+
+  <!-- main wordmark -->
+  <text x="22" y="47"
+        font-family="Consolas,'Courier New',monospace"
+        font-weight="900"
+        font-size="36"
+        letter-spacing="-1">
+    <tspan fill="#52526a">✂  </tspan><tspan fill="#c8f53a">KLIP</tspan><tspan fill="#e2e2ec">WERK</tspan>
+  </text>
+
+  <!-- tagline -->
+  <text x="24" y="65"
+        font-family="Consolas,'Courier New',monospace"
+        font-size="11"
+        fill="#52526a"
+        letter-spacing="0">fast · keyboard-driven · ffmpeg-powered</text>
+</svg>
