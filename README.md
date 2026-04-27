@@ -18,7 +18,7 @@
 <br/>
 
 <!-- Replace with an actual screenshot/GIF once you have one -->
-<!-- ![Klipwerk demo](assets/demo.gif) -->
+![Klipwerk demo](assets/2026-04-27 21-49-05_crop.gif)
 
 </div>
 
