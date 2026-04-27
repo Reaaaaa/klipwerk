@@ -222,7 +222,7 @@ class TestGifVf:
         vf = gif_vf(12, None)
         assert vf.startswith("fps=12,split")
         assert "crop" not in vf
-        assert "scale" not in vf
+        assert "flags=lanczos" not in vf   # "scale" alone would match bayer_scale=5
 
     def test_no_crop_with_scale(self) -> None:
         vf = gif_vf(15, 480)
@@ -235,7 +235,7 @@ class TestGifVf:
         vf = gif_vf(12, None, cr)
         # crop must come first, then fps
         assert vf.startswith("crop=640:360:10:20,fps=12,split")
-        assert "scale" not in vf
+        assert "flags=lanczos" not in vf   # "scale" alone would match bayer_scale=5
 
     def test_with_crop_and_scale(self) -> None:
         cr: CropRect = {"x": 0, "y": 0, "w": 1280, "h": 720}
