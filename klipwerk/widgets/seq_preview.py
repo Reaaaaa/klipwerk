@@ -8,7 +8,6 @@ the main window.
 from __future__ import annotations
 
 import cv2
-
 from PyQt6.QtCore import QPoint, QRect, QSize, Qt, QTimer
 from PyQt6.QtGui import QImage, QKeyEvent, QPixmap
 from PyQt6.QtWidgets import (
@@ -22,12 +21,21 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from .helpers import btn, label
 from ..core.models import Clip
 from ..ui.icons import SVG_CLOSE, SVG_MAXIMIZE, SVG_MINIMIZE, SVG_RESTORE, make_icon
 from ..ui.theme import (
-    ACC, ACC2, BG, BORDER2, MUTED, MUTED2, S1, S2, S3, TEXT,
+    ACC,
+    ACC2,
+    BG,
+    BORDER2,
+    MUTED,
+    MUTED2,
+    S1,
+    S2,
+    S3,
+    TEXT,
 )
+from .helpers import btn, label
 
 
 class SequencePreviewWindow(QWidget):
