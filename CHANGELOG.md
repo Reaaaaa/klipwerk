@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1]
+
+### Fixed
+- **Sidebar ghost artifacts on splitter drag**: `WA_OpaquePaintEvent` was
+  set to `True` at widget init even without a video loaded, so Windows left
+  stale pixels behind when the splitter was moved. Flag now starts `False`
+  and is only enabled once `set_frame()` renders a real frame. Both
+  splitters additionally call `setOpaqueResize(False)` to prevent live
+  repaint glitches, and `splitterMoved` triggers a full central-widget
+  repaint as a belt-and-suspenders fallback.
+- **`gif_vf` test false positive**: `assert "scale" not in vf` incorrectly
+  matched `bayer_scale=5` inside the palette filter. Fixed to check
+  `"flags=lanczos" not in vf` instead.
+- **CLI flags section in README**: clarified that the `klipwerk` shorthand
+  requires an active venv on Windows; `python -m klipwerk` always works.
+
 ## [0.4.0]
 
 ### Added

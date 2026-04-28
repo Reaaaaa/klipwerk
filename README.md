@@ -101,10 +101,17 @@ KLIPWERK calls your existing `ffmpeg` installation — nothing is bundled. It se
 ## CLI flags
 
 ```
-klipwerk              # launch the editor
-klipwerk --version    # print version and exit
-klipwerk --help       # show flag summary
-klipwerk --reset-settings  # clear saved preferences
+# Always works — no PATH setup needed
+python -m klipwerk
+python -m klipwerk --version          # print version and exit
+python -m klipwerk --help             # show flag summary
+python -m klipwerk --reset-settings   # clear saved preferences
+
+# Shorthand — available after pip install -e . (venv must be active on Windows)
+klipwerk
+klipwerk --version
+klipwerk --help
+klipwerk --reset-settings
 ```
 
 ---

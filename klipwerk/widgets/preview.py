@@ -42,11 +42,12 @@ class PreviewWidget(QLabel):
         )
         self.setText("Drop a video here\nor click  Open File")
 
-        # Anti-flicker during window resize: we fully repaint in
-        # paintEvent, so Qt doesn't need to pre-clear the background
-        # itself. WA_StyledBackground is still needed so the setStyleSheet
-        # border actually renders.
-        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
+        # WA_OpaquePaintEvent is enabled only while a video frame is being
+        # rendered (set_frame → True, reset → False). In placeholder state Qt
+        # must erase the background itself before drawing the text, otherwise
+        # old content (e.g. a sidebar dragged over this area) stays visible.
+        # WA_StyledBackground is always on so the setStyleSheet border renders.
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
         # Crop state

@@ -280,6 +280,7 @@ class Klipwerk(QMainWindow):
     def _build_main(self) -> QSplitter:
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.setHandleWidth(4)
+        splitter.setOpaqueResize(False)  # prevents repaint glitches on Windows
 
         # Left side — preview + toolbar + playback
         left = QWidget()
@@ -324,6 +325,7 @@ class Klipwerk(QMainWindow):
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 0)
         splitter.setSizes([900, 310])
+        splitter.splitterMoved.connect(lambda _pos, _idx: self.centralWidget().update())
 
         self._update_codec_note(0)
         return splitter

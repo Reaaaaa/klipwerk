@@ -383,6 +383,7 @@ def build_sidebar(
     sections_splitter = QSplitter(Qt.Orientation.Vertical)
     sections_splitter.setChildrenCollapsible(False)
     sections_splitter.setHandleWidth(4)
+    sections_splitter.setOpaqueResize(False)  # prevents repaint glitches on Windows
     sections_splitter.setStyleSheet(
         f"QSplitter::handle {{ background:{BORDER}; }}"
         f"QSplitter::handle:hover {{ background:{BORDER2}; }}"
